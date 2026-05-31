@@ -1,0 +1,27 @@
+# Ambiente virtual
+venv/
+
+# Modelos e checkpoints
+modelos_salvos/*.pth
+
+# Logs
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Reports gerados (opcional — remova se quiser versionar)
+# reports/

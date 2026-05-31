@@ -1,0 +1,38 @@
+# ============================================================
+# Dependências do Projeto: Classificação de Câncer Pulmonar
+# ============================================================
+# Python 3.11 requerido (PyTorch não suporta Python 3.14+)
+# Para instalar: pip install -r requirements.txt
+
+# --- Deep Learning ---
+torch>=2.2.0
+torchvision>=0.17.0
+torchaudio>=2.2.0
+
+# --- Processamento de Imagens ---
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0  # Versão headless para servidores/macOS
+albumentations>=1.4.0
+
+# --- Ciência de Dados ---
+numpy>=1.26.0
+pandas>=2.0.0
+scikit-learn>=1.5.0
+
+# --- Visualização ---
+matplotlib>=3.9.0
+seaborn>=0.13.0
+plotly>=5.24.0
+
+# --- Notebooks ---
+jupyter>=1.1.0
+notebook>=7.0.0
+ipywidgets>=8.0.0
+
+# --- Monitoramento de Treino ---
+tqdm>=4.66.0
+tensorboard>=2.17.0
+
+# --- Utilitários ---
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
