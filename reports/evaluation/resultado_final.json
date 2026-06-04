@@ -1,0 +1,7 @@
+{
+  "arquitetura": "resnet50",
+  "acuracia_teste": 0.7365079365079366,
+  "auc_roc_macro": 0.918800365554028,
+  "n_amostras_teste": 315,
+  "n_erros": 83
+}
