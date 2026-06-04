@@ -84,13 +84,38 @@ As curvas ROC demonstram **excelente capacidade discriminativa** do modelo com A
 
 ---
 
-## Sobre o Dataset
+## Dataset & Licença
+
+### Fonte
+
+**Chest CT-Scan images Dataset** — disponível publicamente no Kaggle.
+
+> Dataset contendo imagens de tomografia computadorizada do tórax anonimizadas,
+> organizadas em 4 classes clínicas e divididas em conjuntos de treino, validação e teste.
+
+Os dados **não estão incluídos neste repositório**. Para reproduzir o projeto, baixe o dataset diretamente no Kaggle e organize-o conforme a estrutura descrita abaixo.
+
+### Distribuição das amostras
 
 | Split | Adenocarcinoma | Carcinoma G. Células | Normal | Carcinoma Escamoso | Total |
 |-------|:--------------:|:--------------------:|:------:|:------------------:|:-----:|
 | Treino | 195 | 115 | 148 | 155 | **613** |
 | Validação | 23 | 21 | 13 | 15 | **72** |
 | Teste | 120 | 51 | 54 | 90 | **315** |
+
+### Licença dos dados
+
+Os dados são disponibilizados sob a **[Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/)**.
+
+Em conformidade com a seção 4.3 da ODbL:
+
+> *Contains information from the Chest CT-Scan images Dataset, which is made available under the [Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/).*
+
+**Resumo das permissões:**
+- Uso livre, inclusive comercial
+- Modificações permitidas
+- Redistribuição exige manutenção da mesma licença ODbL
+- Atribuição obrigatória ao usar publicamente
 
 ---
 
