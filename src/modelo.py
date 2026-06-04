@@ -1,8 +1,36 @@
 """
 modelo.py
 ---------
-Define a arquitetura do modelo de classificação usando Transfer Learning.
-Suporta múltiplos backbones do torchvision com cabeça de classificação customizada.
+Arquitetura do modelo de classificação de câncer pulmonar via Transfer Learning.
+
+O modelo combina um backbone pré-treinado no ImageNet com uma cabeça de
+classificação customizada. A estratégia de duas fases permite convergência
+estável mesmo com poucos dados:
+
+  Fase 1 — Backbone congelado
+      Apenas a cabeça é treinada (congelar_backbone=True). Permite que o
+      classificador se adapte ao domínio médico sem destruir os pesos do
+      ImageNet com gradientes ruidosos na inicialização.
+
+  Fase 2 — Fine-tuning
+      As últimas N camadas do backbone são descongeladas com taxa de
+      aprendizado baixa, refinando as features de alto nível para TC pulmonar.
+
+Exportações principais
+----------------------
+CabecaClassificacao          Módulo nn com a cabeça totalmente conectada
+ModeloClassificacaoPulmao    Modelo completo (backbone + cabeça)
+criar_modelo(...)            Função de conveniência: cria e move para dispositivo
+
+Uso
+---
+    from modelo import criar_modelo
+
+    # Fase 1 — backbone congelado
+    modelo = criar_modelo(congelar_backbone=True)
+
+    # Fase 2 — descongelamento das últimas 30 camadas
+    modelo.descongelar_backbone(camadas=30)
 """
 
 from typing import Optional
@@ -20,39 +48,63 @@ from config import NUM_CLASSES, ARQUITETURA_MODELO, CONGELAR_BACKBONE
 
 class CabecaClassificacao(nn.Module):
     """
-    Cabeça de classificação totalmente conectada que substitui
-    o classificador original do backbone pré-treinado.
+    Cabeça totalmente conectada que substitui o classificador original do backbone.
+
+    Arquitetura
+    -----------
+    BatchNorm1d(dim_entrada)
+        → Dropout(taxa_dropout)
+        → Linear(dim_entrada → 256)
+        → ReLU
+        → BatchNorm1d(256)
+        → Dropout(taxa_dropout / 2)
+        → Linear(256 → num_classes)   ← logits de saída
+
+    O BatchNorm na entrada normaliza o feature vector do backbone, acelerando
+    a convergência da cabeça durante a Fase 1. O Dropout duplo regulariza
+    o classificador para datasets pequenos.
 
     Parâmetros
     ----------
     num_entradas : int
-        Dimensão da saída do backbone (feature vector).
+        Dimensão do feature vector de saída do backbone.
+        ResNet50 → 2048 | ResNet18 → 512 | EfficientNet-B0 → 1280 | DenseNet121 → 1024
     num_classes : int
-        Número de classes de saída.
+        Número de classes de saída (logits, sem softmax).
     taxa_dropout : float
-        Probabilidade de dropout para regularização.
+        Probabilidade de zeragem na primeira camada Dropout.
     """
 
     def __init__(
         self,
-        num_entradas: int,
-        num_classes: int,
-        taxa_dropout: float = 0.5,
+        num_entradas:  int,
+        num_classes:   int,
+        taxa_dropout:  float = 0.5,
     ) -> None:
         super().__init__()
 
         self.classificador = nn.Sequential(
-            nn.BatchNorm1d(num_entradas),       # Normalização do feature vector
+            nn.BatchNorm1d(num_entradas),
             nn.Dropout(p=taxa_dropout),
             nn.Linear(num_entradas, 256),
             nn.ReLU(inplace=True),
             nn.BatchNorm1d(256),
             nn.Dropout(p=taxa_dropout / 2),
-            nn.Linear(256, num_classes),        # Camada de saída
+            nn.Linear(256, num_classes),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Passagem direta pela cabeça de classificação."""
+        """
+        Parâmetros
+        ----------
+        x : torch.Tensor
+            Feature vector com shape (N, num_entradas).
+
+        Retorno
+        -------
+        torch.Tensor
+            Logits com shape (N, num_classes).
+        """
         return self.classificador(x)
 
 
@@ -62,117 +114,117 @@ class CabecaClassificacao(nn.Module):
 
 class ModeloClassificacaoPulmao(nn.Module):
     """
-    Modelo de Transfer Learning para classificação de câncer pulmonar.
+    Modelo de Transfer Learning para classificação de TC pulmonar em 4 classes.
 
-    Combina um backbone pré-treinado no ImageNet com uma cabeça de
-    classificação customizada adaptada para as classes do projeto.
+    Carrega um backbone pré-treinado no ImageNet, remove sua cabeça original
+    e substitui por CabecaClassificacao adaptada ao número de classes do projeto.
+
+    Backbones suportados
+    --------------------
+    'resnet50'       → 2048 features  (padrão)
+    'resnet18'       → 512  features
+    'efficientnet_b0'→ 1280 features
+    'densenet121'    → 1024 features
 
     Parâmetros
     ----------
     arquitetura : str
-        Nome do backbone. Opções: 'resnet50', 'resnet18',
-        'efficientnet_b0', 'densenet121'.
+        Nome do backbone. Ver ARQUITETURAS_SUPORTADAS.
     num_classes : int
         Número de classes de saída.
     congelar_backbone : bool
-        Se True, congela os parâmetros do backbone (útil na fase inicial
-        de fine-tuning para treinar apenas a cabeça).
+        Se True, congela todos os pesos do backbone na inicialização.
     taxa_dropout : float
-        Taxa de dropout na cabeça de classificação.
+        Taxa de dropout na CabecaClassificacao.
+
+    Raises
+    ------
+    ValueError
+        Se `arquitetura` não estiver em ARQUITETURAS_SUPORTADAS.
     """
 
-    ARQUITETURAS_SUPORTADAS = {
-        "resnet18":       (models.resnet18,       models.ResNet18_Weights.DEFAULT,       512),
-        "resnet50":       (models.resnet50,        models.ResNet50_Weights.DEFAULT,       2048),
-        "efficientnet_b0":(models.efficientnet_b0, models.EfficientNet_B0_Weights.DEFAULT, 1280),
-        "densenet121":    (models.densenet121,     models.DenseNet121_Weights.DEFAULT,    1024),
+    ARQUITETURAS_SUPORTADAS: dict[str, tuple] = {
+        "resnet18":        (models.resnet18,        models.ResNet18_Weights.DEFAULT,        512),
+        "resnet50":        (models.resnet50,         models.ResNet50_Weights.DEFAULT,        2048),
+        "efficientnet_b0": (models.efficientnet_b0,  models.EfficientNet_B0_Weights.DEFAULT, 1280),
+        "densenet121":     (models.densenet121,      models.DenseNet121_Weights.DEFAULT,     1024),
     }
 
     def __init__(
         self,
-        arquitetura: str = ARQUITETURA_MODELO,
-        num_classes: int = NUM_CLASSES,
-        congelar_backbone: bool = CONGELAR_BACKBONE,
-        taxa_dropout: float = 0.5,
+        arquitetura:       str   = ARQUITETURA_MODELO,
+        num_classes:       int   = NUM_CLASSES,
+        congelar_backbone: bool  = CONGELAR_BACKBONE,
+        taxa_dropout:      float = 0.5,
     ) -> None:
         super().__init__()
 
         if arquitetura not in self.ARQUITETURAS_SUPORTADAS:
-            raise ValueError(
-                f"Arquitetura '{arquitetura}' não suportada. "
-                f"Escolha entre: {list(self.ARQUITETURAS_SUPORTADAS.keys())}"
-            )
+            opcoes = list(self.ARQUITETURAS_SUPORTADAS.keys())
+            raise ValueError(f"Arquitetura '{arquitetura}' não suportada. Opções: {opcoes}")
 
         self.arquitetura = arquitetura
         construtor, pesos, dim_features = self.ARQUITETURAS_SUPORTADAS[arquitetura]
 
-        # Carrega backbone pré-treinado no ImageNet
         self.backbone = construtor(weights=pesos)
 
         if congelar_backbone:
             self._congelar_backbone()
 
-        # Substitui a camada final pelo classificador customizado
         self._substituir_classificador(dim_features, num_classes, taxa_dropout)
 
     # ----------------------------------------------------------
-    # Métodos internos de configuração
+    # Configuração do backbone
     # ----------------------------------------------------------
 
     def _congelar_backbone(self) -> None:
-        """Congela todos os parâmetros do backbone (grad=False)."""
-        for parametro in self.backbone.parameters():
-            parametro.requires_grad = False
+        """Congela todos os parâmetros do backbone (requires_grad = False)."""
+        for p in self.backbone.parameters():
+            p.requires_grad = False
 
     def descongelar_backbone(self, camadas: Optional[int] = None) -> None:
         """
-        Descongela os parâmetros do backbone para fine-tuning completo.
+        Descongela parâmetros do backbone para a Fase 2 de fine-tuning.
 
         Parâmetros
         ----------
         camadas : int, optional
-            Número de camadas finais a descongelar (contadas do final).
-            Se None, descongela todo o backbone.
-        """
-        todos_parametros = list(self.backbone.parameters())
+            Número de parâmetros finais a descongelar (contados do último).
+            None descongela todo o backbone.
 
-        if camadas is None:
-            for p in todos_parametros:
-                p.requires_grad = True
-        else:
-            for p in todos_parametros[-camadas:]:
-                p.requires_grad = True
+        Exemplo
+        -------
+            modelo.descongelar_backbone(camadas=30)  # Fase 2 típica no ResNet50
+        """
+        todos = list(self.backbone.parameters())
+        alvo  = todos if camadas is None else todos[-camadas:]
+        for p in alvo:
+            p.requires_grad = True
 
     def _substituir_classificador(
         self,
         dim_features: int,
-        num_classes: int,
+        num_classes:  int,
         taxa_dropout: float,
     ) -> None:
         """
-        Remove a cabeça original do backbone e anexa o classificador customizado.
-        Cada arquitetura usa um atributo diferente para a camada final.
+        Remove a cabeça original do backbone e anexa CabecaClassificacao.
+        Cada família de arquitetura expõe a cabeça em um atributo diferente.
         """
         cabeca = CabecaClassificacao(dim_features, num_classes, taxa_dropout)
 
         if self.arquitetura.startswith("resnet"):
             self.backbone.fc = cabeca
-
-        elif self.arquitetura.startswith("efficientnet"):
-            # EfficientNet usa backbone.classifier (Sequential)
-            self.backbone.classifier = cabeca
-
-        elif self.arquitetura.startswith("densenet"):
-            # DenseNet usa backbone.classifier (Linear simples)
+        elif self.arquitetura.startswith(("efficientnet", "densenet")):
             self.backbone.classifier = cabeca
 
     # ----------------------------------------------------------
-    # Forward pass
+    # Forward
     # ----------------------------------------------------------
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Passagem direta completa: backbone → cabeça de classificação.
+        Passagem direta: backbone → CabecaClassificacao → logits.
 
         Parâmetros
         ----------
@@ -182,29 +234,29 @@ class ModeloClassificacaoPulmao(nn.Module):
         Retorno
         -------
         torch.Tensor
-            Logits com shape (N, num_classes). Aplicar softmax para probabilidades.
+            Logits com shape (N, num_classes). Use softmax para probabilidades.
         """
         return self.backbone(x)
 
     # ----------------------------------------------------------
-    # Utilitários
+    # Utilitários de inspeção
     # ----------------------------------------------------------
 
     def contar_parametros(self) -> dict[str, int]:
         """
-        Conta parâmetros treináveis e totais do modelo.
+        Contagem de parâmetros treináveis, congelados e totais.
 
         Retorno
         -------
         dict[str, int]
-            {'treinavel': ..., 'total': ..., 'congelado': ...}
+            {'treinavel': ..., 'congelado': ..., 'total': ...}
         """
         total     = sum(p.numel() for p in self.parameters())
         treinavel = sum(p.numel() for p in self.parameters() if p.requires_grad)
         return {
             "treinavel": treinavel,
-            "total":     total,
             "congelado": total - treinavel,
+            "total":     total,
         }
 
 
@@ -213,13 +265,15 @@ class ModeloClassificacaoPulmao(nn.Module):
 # ============================================================
 
 def criar_modelo(
-    arquitetura: str = ARQUITETURA_MODELO,
-    num_classes: int = NUM_CLASSES,
-    congelar_backbone: bool = CONGELAR_BACKBONE,
-    dispositivo: Optional[torch.device] = None,
+    arquitetura:       str                    = ARQUITETURA_MODELO,
+    num_classes:       int                    = NUM_CLASSES,
+    congelar_backbone: bool                   = CONGELAR_BACKBONE,
+    dispositivo:       Optional[torch.device] = None,
 ) -> ModeloClassificacaoPulmao:
     """
     Cria, configura e move o modelo para o dispositivo correto.
+
+    Detecta automaticamente GPU (CUDA) ou CPU se `dispositivo` não for fornecido.
 
     Parâmetros
     ----------
@@ -228,14 +282,21 @@ def criar_modelo(
     num_classes : int
         Número de classes de saída.
     congelar_backbone : bool
-        Congela pesos do backbone na inicialização.
+        Congela o backbone na inicialização (recomendado para Fase 1).
     dispositivo : torch.device, optional
-        CPU ou GPU. Se None, detecta automaticamente.
+        Dispositivo de destino. Detectado automaticamente se None.
 
     Retorno
     -------
     ModeloClassificacaoPulmao
-        Modelo pronto para treinamento.
+        Modelo pronto para treinamento no dispositivo selecionado.
+
+    Exemplo
+    -------
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        modelo = criar_modelo(congelar_backbone=True, dispositivo=device)
+        params = modelo.contar_parametros()
+        print(f"Parâmetros treináveis: {params['treinavel']:,}")
     """
     if dispositivo is None:
         dispositivo = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -245,6 +306,4 @@ def criar_modelo(
         num_classes=num_classes,
         congelar_backbone=congelar_backbone,
     )
-    modelo = modelo.to(dispositivo)
-
-    return modelo
+    return modelo.to(dispositivo)
