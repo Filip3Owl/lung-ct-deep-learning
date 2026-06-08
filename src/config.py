@@ -54,6 +54,7 @@ CAMINHO_REPORTS            = RAIZ_PROJETO / "reports"
 CAMINHO_REPORTS_EDA        = CAMINHO_REPORTS / "eda"
 CAMINHO_REPORTS_TREINO     = CAMINHO_REPORTS / "training"
 CAMINHO_REPORTS_AVALIACAO  = CAMINHO_REPORTS / "evaluation"
+CAMINHO_REPORTS_GRADCAM    = CAMINHO_REPORTS / "gradcam"
 
 # Garante a existência de todos os diretórios de saída na importação
 for _dir in [
@@ -62,6 +63,7 @@ for _dir in [
     CAMINHO_REPORTS_EDA,
     CAMINHO_REPORTS_TREINO,
     CAMINHO_REPORTS_AVALIACAO,
+    CAMINHO_REPORTS_GRADCAM,
 ]:
     _dir.mkdir(parents=True, exist_ok=True)
 
