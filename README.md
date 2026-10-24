@@ -1,228 +1,228 @@
-# Classificação de Câncer Pulmonar por Tomografia — Deep Learning com PyTorch
+# Lung Cancer Classification on CT Scans: Deep Learning with PyTorch
 
-Projeto de aprendizado profundo para classificação automática de imagens de tomografia computadorizada (TC) do tórax em 4 categorias clínicas, utilizando Transfer Learning com ResNet50.
+Deep learning project for the automatic classification of chest computed tomography (CT) images into 4 clinical categories, using Transfer Learning with ResNet50.
 
 ---
 
-## Stacks Utilizadas
+## Tech Stack
 
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.2-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
 ![torchvision](https://img.shields.io/badge/torchvision-0.17-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)
 ![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-F37626?style=for-the-badge&logo=jupyter&logoColor=white)
-![TensorBoard](https://img.shields.io/badge/TensorBoard-Monitor-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
-![Matplotlib](https://img.shields.io/badge/Matplotlib-Visualização-11557C?style=for-the-badge&logo=python&logoColor=white)
+![TensorBoard](https://img.shields.io/badge/TensorBoard-Monitoring-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
+![Matplotlib](https://img.shields.io/badge/Matplotlib-Visualization-11557C?style=for-the-badge&logo=python&logoColor=white)
 
 ---
 
-## Por que este projeto importa?
+## Why this project matters
 
-O câncer de pulmão é a **principal causa de morte por câncer no mundo**, responsável por mais de 1,8 milhão de óbitos anuais segundo a OMS. O diagnóstico precoce é o fator mais determinante para a sobrevivência — pacientes detectados no estágio inicial têm taxa de sobrevivência em 5 anos de até **56%**, contra apenas **5%** nos casos avançados.
+Lung cancer is the **leading cause of cancer death worldwide**, responsible for more than 1.8 million deaths per year according to the WHO. Early diagnosis is the most decisive factor for survival: patients detected at an early stage have a 5-year survival rate of up to **56%**, compared with only **5%** in advanced cases.
 
-A tomografia computadorizada é o exame padrão-ouro para triagem, mas a interpretação manual por radiologistas é:
+Computed tomography is the gold-standard screening exam, but manual interpretation by radiologists is:
 
-- **Demorada** — cada TC contém centenas de cortes a serem analisados
-- **Escassa** — falta de especialistas, especialmente em regiões remotas
-- **Sujeita a variação** — fadiga e subjetividade impactam o diagnóstico
+- **Time-consuming:** each CT scan contains hundreds of slices to analyze
+- **Scarce:** there is a shortage of specialists, especially in remote regions
+- **Subject to variation:** fatigue and subjectivity affect the diagnosis
 
-Este projeto demonstra que modelos de deep learning podem **classificar automaticamente** subtipos de câncer pulmonar em imagens de TC com alta confiança (AUC-ROC de **0.919**), abrindo caminho para ferramentas de suporte à decisão clínica que tornam o diagnóstico mais rápido, acessível e consistente.
+This project shows that deep learning models can **automatically classify** lung cancer subtypes on CT images with high confidence (macro AUC-ROC of **0.919**), paving the way for clinical decision support tools that make diagnosis faster, more accessible and more consistent.
 
 ---
 
-## Resultados
+## Results
 
-| Métrica | Valor |
+| Metric | Value |
 |---------|-------|
-| Acurácia no teste | **73.65%** |
-| AUC-ROC macro | **0.919** |
-| Amostras de teste | 315 |
-| Acurácia de treino | 87.77% |
-| Acurácia de validação | 81.94% |
+| Test accuracy | **73.65%** |
+| Macro AUC-ROC | **0.919** |
+| Test samples | 315 |
+| Training accuracy | 87.77% |
+| Validation accuracy | 81.94% |
 
 ---
 
-## Visualizações do Projeto
+## Project Visualizations
 
-### Distribuição de Classes
+### Class Distribution
 
 <img src="reports/eda/distribuicao_classes.png" width="700"/>
 
-O dataset apresenta **desbalanceamento de classes**: adenocarcinoma é a classe dominante (195 amostras de treino) enquanto carcinoma de grandes células é a minoria (115). Esse desequilíbrio foi tratado com `CrossEntropyLoss` ponderado por frequência inversa.
+The dataset is **class-imbalanced**: adenocarcinoma is the dominant class (195 training samples), while large cell carcinoma is the minority (115). This imbalance was handled with a `CrossEntropyLoss` weighted by inverse class frequency.
 
 ---
 
-### Exemplos de Data Augmentation
+### Data Augmentation Examples
 
 <img src="reports/training/exemplos_augmentacao.png" width="700"/>
 
-Para aumentar artificialmente a diversidade do dataset pequeno (613 amostras de treino), foram aplicadas augmentações específicas para imagens médicas: rotações leves, flips horizontais, variação de brilho/contraste e normalização ImageNet. Augmentações agressivas (distorções geométricas severas) foram evitadas para não comprometer características clínicas relevantes.
+To artificially increase the diversity of this small dataset (613 training samples), augmentations suited to medical images were applied: slight rotations, horizontal flips, brightness/contrast variation and ImageNet normalization. Aggressive augmentations (severe geometric distortions) were avoided so as not to compromise clinically relevant features.
 
 ---
 
-### Histórico de Treinamento
+### Training History
 
 <img src="reports/training/historico_treino.png" width="700"/>
 
-O modelo foi treinado em **2 fases**: na Fase 1 apenas a cabeça classificadora foi treinada (backbone congelado), e na Fase 2 as últimas 30 camadas do ResNet50 foram descongeladas para fine-tuning com taxa de aprendizado menor. O Early Stopping com paciência de 7 épocas evitou overfitting.
+The model was trained in **2 phases**: in Phase 1 only the classification head was trained (frozen backbone), and in Phase 2 the last 30 layers of ResNet50 were unfrozen for fine-tuning with a lower learning rate. Early Stopping with a patience of 7 epochs prevented overfitting.
 
 ---
 
-### Matriz de Confusão
+### Confusion Matrix
 
 <img src="reports/evaluation/matriz_confusao.png" width="600"/>
 
-A matriz revela que o modelo performa melhor em **adenocarcinoma** e tem mais dificuldade com **carcinoma de grandes células**, a classe com menos amostras. A confusão entre subtipos histológicos é esperada mesmo em contextos clínicos reais, onde a biópsia é necessária para confirmação definitiva.
+The matrix shows that the model performs best on **adenocarcinoma** and struggles most with **large cell carcinoma**, the class with the fewest samples. Confusion between histological subtypes is expected even in real clinical settings, where a biopsy is required for definitive confirmation.
 
 ---
 
-### Curvas ROC por Classe
+### ROC Curves per Class
 
 <img src="reports/evaluation/curvas_roc.png" width="700"/>
 
-As curvas ROC demonstram **excelente capacidade discriminativa** do modelo com AUC-ROC macro de 0.919. Todas as classes atingem AUC acima de 0.87, indicando que o modelo aprendeu características discriminativas relevantes para cada subtipo.
+The ROC curves show the model's **excellent discriminative ability**, with a macro AUC-ROC of 0.919. Every class reaches an AUC above 0.87, indicating that the model learned relevant discriminative features for each subtype.
 
 ---
 
-## Dataset & Licença
+## Dataset & License
 
-### Fonte
+### Source
 
-**Chest CT-Scan images Dataset** — disponível publicamente no Kaggle.
+**Chest CT-Scan images Dataset**, publicly available on Kaggle.
 
-> Dataset contendo imagens de tomografia computadorizada do tórax anonimizadas,
-> organizadas em 4 classes clínicas e divididas em conjuntos de treino, validação e teste.
+> A dataset of anonymized chest computed tomography images,
+> organized into 4 clinical classes and split into training, validation and test sets.
 
-Os dados **não estão incluídos neste repositório**. Para reproduzir o projeto, baixe o dataset diretamente no Kaggle e organize-o conforme a estrutura descrita abaixo.
+The data is **not included in this repository**. To reproduce the project, download the dataset directly from Kaggle and organize it according to the structure described below.
 
-### Distribuição das amostras
+### Sample distribution
 
-| Split | Adenocarcinoma | Carcinoma G. Células | Normal | Carcinoma Escamoso | Total |
+| Split | Adenocarcinoma | Large Cell Carcinoma | Normal | Squamous Cell Carcinoma | Total |
 |-------|:--------------:|:--------------------:|:------:|:------------------:|:-----:|
-| Treino | 195 | 115 | 148 | 155 | **613** |
-| Validação | 23 | 21 | 13 | 15 | **72** |
-| Teste | 120 | 51 | 54 | 90 | **315** |
+| Train | 195 | 115 | 148 | 155 | **613** |
+| Validation | 23 | 21 | 13 | 15 | **72** |
+| Test | 120 | 51 | 54 | 90 | **315** |
 
-### Licença dos dados
+### Data license
 
-Os dados são disponibilizados sob a **[Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/)**.
+The data is made available under the **[Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/)**.
 
-Em conformidade com a seção 4.3 da ODbL:
+In accordance with section 4.3 of the ODbL:
 
 > *Contains information from the Chest CT-Scan images Dataset, which is made available under the [Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/).*
 
-**Resumo das permissões:**
-- Uso livre, inclusive comercial
-- Modificações permitidas
-- Redistribuição exige manutenção da mesma licença ODbL
-- Atribuição obrigatória ao usar publicamente
+**Summary of permissions:**
+- Free use, including commercial use
+- Modifications allowed
+- Redistribution requires keeping the same ODbL license
+- Attribution required when used publicly
 
 ---
 
-## Desafios do Projeto
+## Project Challenges
 
-### 1. Dataset pequeno para deep learning
-Com apenas 613 imagens de treino, treinar uma CNN do zero seria inviável. A solução foi **Transfer Learning** com ResNet50 pré-treinada no ImageNet — o modelo já parte com conhecimento de features visuais gerais e apenas adapta as camadas finais ao domínio médico.
+### 1. A small dataset for deep learning
+With only 613 training images, training a CNN from scratch would not be feasible. The solution was **Transfer Learning** with a ResNet50 pretrained on ImageNet: the model starts with knowledge of general visual features and only adapts the final layers to the medical domain.
 
-### 2. Desbalanceamento de classes
-A diferença entre a maior classe (195 amostras) e a menor (115) causa viés de predição. Foi implementado **`CrossEntropyLoss` com pesos inversamente proporcionais à frequência** de cada classe, penalizando mais os erros nas classes raras.
+### 2. Class imbalance
+The gap between the largest class (195 samples) and the smallest (115) biases predictions. A **`CrossEntropyLoss` with weights inversely proportional to each class frequency** was implemented, penalizing errors on rare classes more heavily.
 
-### 3. Overfitting com imagens médicas
-Imagens de TC têm características muito específicas. Para generalizar bem com poucos dados, foi necessário calibrar cuidadosamente as augmentações — fortes o suficiente para regularizar, mas sem distorcer informações clínicas relevantes (como textura nodular e padrões de densidade).
+### 3. Overfitting on medical images
+CT images have very specific characteristics. To generalize well with little data, the augmentations had to be carefully calibrated: strong enough to regularize, but without distorting clinically relevant information (such as nodular texture and density patterns).
 
-### 4. Estratégia de fine-tuning em 2 fases
-Descongelar todo o backbone de uma vez com uma taxa de aprendizado alta destruiria os pesos pré-treinados. A solução foi: **Fase 1** treina apenas a cabeça com `LR=1e-3` → **Fase 2** descongela as últimas 30 camadas com `LR=1e-4`, preservando as features de baixo nível aprendidas no ImageNet.
+### 4. Two-phase fine-tuning strategy
+Unfreezing the entire backbone at once with a high learning rate would destroy the pretrained weights. The solution: **Phase 1** trains only the head with `LR=1e-3`, then **Phase 2** unfreezes the last 30 layers with `LR=1e-4`, preserving the low-level features learned on ImageNet.
 
-### 5. Compatibilidade de ambiente no macOS
-O Python 3.14+ removeu APIs internas usadas pelo PyTorch. Foi necessário usar especificamente **Python 3.11** com `venv` isolado. Adicionalmente, o macOS bloqueia certificados SSL por padrão, exigindo configuração manual para o download dos pesos pré-treinados.
+### 5. Environment compatibility on macOS
+Python 3.14+ removed internal APIs used by PyTorch, so **Python 3.11** with an isolated `venv` was required. In addition, macOS blocks SSL certificates by default, which required manual configuration to download the pretrained weights.
 
 ---
 
-## Arquitetura
+## Architecture
 
-- **Backbone:** ResNet50 pré-treinada no ImageNet (Transfer Learning)
-- **Cabeça:** `BatchNorm → Dropout → Linear(2048→256) → ReLU → Linear(256→4)`
-- **Estratégia de treino:**
-  - Fase 1: backbone congelado, treina apenas a cabeça (10 épocas, LR=1e-3)
-  - Fase 2: fine-tuning das últimas 30 camadas (até 30 épocas, LR=1e-4)
-- **Loss:** CrossEntropyLoss com pesos por classe
-- **Otimizador:** Adam com weight decay L2
+- **Backbone:** ResNet50 pretrained on ImageNet (Transfer Learning)
+- **Head:** `BatchNorm → Dropout → Linear(2048→256) → ReLU → Linear(256→4)`
+- **Training strategy:**
+  - Phase 1: frozen backbone, trains only the head (10 epochs, LR=1e-3)
+  - Phase 2: fine-tuning of the last 30 layers (up to 30 epochs, LR=1e-4)
+- **Loss:** CrossEntropyLoss with class weights
+- **Optimizer:** Adam with L2 weight decay
 - **Scheduler:** ReduceLROnPlateau
-- **Early Stopping:** paciência de 7 épocas
+- **Early Stopping:** patience of 7 epochs
 
 ---
 
-## Estrutura do Projeto
+## Project Structure
 
 ```
 chest/
 ├── notebooks/
-│   ├── 01_exploracao_dados.ipynb     # EDA e análise visual
-│   ├── 02_preprocessamento.ipynb    # Validação do pipeline
-│   ├── 03_treinamento.ipynb         # Treinamento (2 fases)
-│   └── 04_avaliacao.ipynb           # Métricas e análise de erros
+│   ├── 01_exploracao_dados.ipynb     # EDA and visual analysis
+│   ├── 02_preprocessamento.ipynb    # Pipeline validation
+│   ├── 03_treinamento.ipynb         # Training (2 phases)
+│   └── 04_avaliacao.ipynb           # Metrics and error analysis
 │
 ├── src/
-│   ├── config.py       # Configurações centrais (caminhos, hiperparâmetros)
-│   ├── dataset.py      # Dataset PyTorch + DataLoaders
-│   ├── modelo.py       # Arquitetura com Transfer Learning
-│   ├── treinamento.py  # Loop de treino + Early Stopping
-│   └── avaliacao.py    # Métricas, matriz de confusão, curvas ROC
+│   ├── config.py       # Central settings (paths, hyperparameters)
+│   ├── dataset.py      # PyTorch Dataset + DataLoaders
+│   ├── modelo.py       # Transfer Learning architecture
+│   ├── treinamento.py  # Training loop + Early Stopping
+│   └── avaliacao.py    # Metrics, confusion matrix, ROC curves
 │
 ├── modelos_salvos/     # Checkpoints (.pth)
-├── logs/               # Logs do TensorBoard
+├── logs/               # TensorBoard logs
 ├── reports/
-│   ├── eda/            # Análise exploratória
-│   ├── training/       # Histórico e augmentações
-│   └── evaluation/     # Métricas e predições
+│   ├── eda/            # Exploratory analysis
+│   ├── training/       # History and augmentations
+│   └── evaluation/     # Metrics and predictions
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## Configuração do Ambiente
+## Environment Setup
 
 ```bash
-# 1. Clone o repositório
+# 1. Clone the repository
 git clone https://github.com/Filip3Owl/lung-ct-deep-learning.git
 cd lung-ct-deep-learning
 
-# 2. Crie e ative o ambiente virtual com Python 3.11
+# 2. Create and activate a virtual environment with Python 3.11
 python3.11 -m venv venv
 source venv/bin/activate        # macOS/Linux
 # venv\Scripts\activate.bat     # Windows
 
-# 3. Instale as dependências
+# 3. Install the dependencies
 pip install -r requirements.txt
 
-# 4. Inicie o Jupyter
+# 4. Start Jupyter
 jupyter notebook notebooks/
 ```
 
 ---
 
-## Fluxo dos Notebooks
+## Notebook Workflow
 
-| # | Notebook | O que faz |
+| # | Notebook | What it does |
 |---|----------|-----------|
-| 1 | `01_exploracao_dados.ipynb` | Análise exploratória: distribuição de classes, amostras visuais, dimensões |
-| 2 | `02_preprocessamento.ipynb` | Verifica integridade, valida augmentações, calcula pesos de classe |
-| 3 | `03_treinamento.ipynb` | Treina o modelo em 2 fases com Early Stopping |
-| 4 | `04_avaliacao.ipynb` | Avalia no teste: acurácia, AUC-ROC, matriz de confusão, análise de erros |
+| 1 | `01_exploracao_dados.ipynb` | Exploratory analysis: class distribution, visual samples, dimensions |
+| 2 | `02_preprocessamento.ipynb` | Checks integrity, validates augmentations, computes class weights |
+| 3 | `03_treinamento.ipynb` | Trains the model in 2 phases with Early Stopping |
+| 4 | `04_avaliacao.ipynb` | Evaluates on the test set: accuracy, AUC-ROC, confusion matrix, error analysis |
 
 ---
 
-## Dependências Principais
+## Main Dependencies
 
-| Pacote | Versão | Uso |
+| Package | Version | Purpose |
 |--------|--------|-----|
-| PyTorch | 2.2.x | Framework de deep learning |
-| torchvision | 0.17.x | Modelos pré-treinados e transforms |
-| scikit-learn | 1.5.x | Métricas de classificação |
-| Pillow | — | Leitura e processamento de imagens |
-| albumentations | 1.4.x | Augmentações avançadas |
-| matplotlib / seaborn | — | Visualizações |
-| jupyter | — | Execução dos notebooks |
-| tqdm | — | Barras de progresso |
-| tensorboard | — | Monitoramento do treinamento |
+| PyTorch | 2.2.x | Deep learning framework |
+| torchvision | 0.17.x | Pretrained models and transforms |
+| scikit-learn | 1.5.x | Classification metrics |
+| Pillow | any | Image loading and processing |
+| albumentations | 1.4.x | Advanced augmentations |
+| matplotlib / seaborn | any | Visualizations |
+| jupyter | any | Running the notebooks |
+| tqdm | any | Progress bars |
+| tensorboard | any | Training monitoring |
